@@ -20,26 +20,22 @@ import (
 type Properties map[string]string
 
 type WebDavClient struct {
-	Host      string
-	Port      int
-	Login     string
-	Password  string
-	DefFolder string
+	Host        string
+	Port        int
+	Login       string
+	Password    string
+	DefFolder   string
+	WrapRequest func(*http.Request)
 }
 
 // NewClient creates a pointer to an instance of WebDavClient.
 func NewClient(host string) *WebDavClient {
 	return &WebDavClient{
 		Host:      host,
-		Port:      0,
-		Login:     "",
-		Password:  "",
-		DefFolder: "",
 	}
 }
 
 func (clnt *WebDavClient) buildConnectionString() string {
-
 	connectionString := clnt.Host
 
 	if !strings.Contains(clnt.Host, "http://") && !strings.Contains(clnt.Host, "https://") {
@@ -62,6 +58,10 @@ func (clnt *WebDavClient) buildRequest(method, uri string, data io.Reader) (*htt
 	req.Header.Set("Content-Type", "application/octet-stream")
 	if len(clnt.Login) > 0 {
 		req.SetBasicAuth(clnt.Login, clnt.Password)
+	}
+
+	if clnt.WrapRequest != nil {
+		clnt.WrapRequest(req)
 	}
 
 	return req, nil
@@ -92,6 +92,13 @@ func (clnt *WebDavClient) SetPassword(password string) *WebDavClient {
 // returns a poiner to an instance WebDavClient.
 func (clnt *WebDavClient) SetDefFolder(defFolder string) *WebDavClient {
 	clnt.DefFolder = defFolder
+	return clnt
+}
+
+// SetWrapRequest sets a wrapper function to modify the http outgoing request
+// returns a poiner to an instance WebDavClient.
+func (clnt *WebDavClient) SetWrapRequest(wrapRequest func(*http.Request)) *WebDavClient {
+	clnt.WrapRequest = wrapRequest
 	return clnt
 }
 
